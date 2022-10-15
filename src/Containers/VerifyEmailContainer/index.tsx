@@ -56,10 +56,6 @@ class ConfirmEmailContainer extends React.Component<RouteComponentProps, State> 
   };
 
   /**
-   * @param  {string} - type
-   * @param  {string} - title
-   * @param  {string} - message
-   *
    * @returns {void} - no value returned
    */
   handleOpenNotification = (type: string, title: string, message: string): void => {
@@ -90,7 +86,7 @@ class ConfirmEmailContainer extends React.Component<RouteComponentProps, State> 
   handleOnPaste = (event: React.ClipboardEvent) => {
     event.preventDefault();
 
-    let code = event.clipboardData.getData('Text').trim();
+    const code = event.clipboardData.getData('Text').trim();
 
     /** Update input */
     this.setState({ confirmationCode: code });
@@ -102,8 +98,7 @@ class ConfirmEmailContainer extends React.Component<RouteComponentProps, State> 
       // code is a valid number
 
       this.setState({ loading: true });
-      
-      
+
       Auth.confirmSignUp(this.state.username, code)
         .then(() => {
           this.handleOpenNotification('success', 'Succesfully confirmed!', 'You will be redirected to login in a few!');
@@ -130,7 +125,7 @@ class ConfirmEmailContainer extends React.Component<RouteComponentProps, State> 
           <Col md={24} lg={18}>
             <div className="full-width">
               <h2>Check your email</h2>
-              <p>We've sent a six­ digit confirmation code</p>
+              <p>We've sent a six digit confirmation code</p>
             </div>
             <Form.Item validateStatus={error && 'error'} help={error} label="Confirmation Code">
               <Input

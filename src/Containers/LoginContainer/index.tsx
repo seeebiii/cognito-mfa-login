@@ -4,17 +4,12 @@ import Amplify from 'aws-amplify'
 import Auth from '@aws-amplify/auth'
 import { Form, Icon, Spin, Input, Button, notification, Col, Row } from 'antd';
 import UserPoolData from '../../Assets/config';
-import QRCode from 'qrcode.react'
 import FormWrapper from '../../Components/FormWrapper';
-
-
-const QR = require('qrcode');
 
 Amplify.configure({
   Auth: {
     userPoolWebClientId: UserPoolData.clientId,
     userPoolId: UserPoolData.userPoolId,
-    region: 'us-west-2',
   }
 })
 
@@ -22,69 +17,82 @@ type Props = RouteComponentProps & {
   form: any;
 };
 
+enum ChallengeName {
+  TOTP = 'SOFTWARE_TOKEN_MFA',
+  SMS = 'SMS_MFA'
+}
+
 type State = {
   loading: boolean;
-  QRCode: string;
-  showQRCode: boolean,
   cognitoUser: any;
   redirect: boolean;
+  requireToken: boolean;
+  challengeName: ChallengeName
 };
-
-
 
 class LoginContainer extends React.Component<Props, State> {
   state = {
     loading: false,
-    QRCode: "",
-    showQRCode: false,
     cognitoUser: {},
     redirect: false,
+    requireToken: false,
+    challengeName: ChallengeName.TOTP
   };
 
+  async componentDidMount() {
+    const currentAuthenticatedUser = await Auth.currentAuthenticatedUser();
+    if (currentAuthenticatedUser) this.setState({ redirect: true });
+  }
 
   handleSubmitMFA = (event: React.FormEvent) => {
     event.preventDefault();
     this.props.form.validateFields(async (err: Error, values: { token: string }) => {
       if (!err) {
-        let { token } = values;
+        const { token } = values;
         this.setState({ loading: true });
 
-        var user = await Auth.verifyTotpToken(this.state.cognitoUser, token);
+        const loggedUser = await Auth.confirmSignIn(
+          this.state.cognitoUser,
+          token,
+          this.state.challengeName
+        );
+        this.setState({ cognitoUser: loggedUser });
 
-        if (user) {
-          notification.success({
-            message: 'Succesfully logged in user!',
-            description: 'Logged in successfully, Redirecting you in a few!',
-            placement: 'topRight',
-            duration: 1.5,
-            onClose: () => {
-              this.setState({ redirect: true });
-            }
-          });
-        }
+        notification.success({
+          message: 'Succesfully logged in user!',
+          description: 'Logged in successfully. Redirecting you now...',
+          placement: 'topRight',
+          duration: 1.5,
+          onClose: () => {
+            this.setState({ redirect: true });
+          }
+        });
       }
     });
   }
-  handleSubmit = (event: React.FormEvent) => {
 
+  handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
 
     this.props.form.validateFields(async (err: Error, values: { username: string; password: string }) => {
       if (!err) {
-        let { username, password } = values;
+        try {
+          const { username, password } = values;
 
-        this.setState({ loading: true });
-        const user = await Auth.signIn(username, password);
-        this.setState({ cognitoUser: user });
+          this.setState({ loading: true });
+          const user = await Auth.signIn(username, password);
+          this.setState({ cognitoUser: user });
 
-        if (user.challengeName === 'MFA_SETUP') {
-
-          const res = await Auth.setupTOTP(user);
-          const authCode = "otpauth://totp/AWSCognito:" + user.username + "?secret=" + res + "&issuer=Cognito";
-          this.setState({ QRCode: authCode, showQRCode: true, loading: false });
-
-        } else if (user.challengeName === 'SOFTWARE_TOKEN_MFA') {
-          this.setState({ showQRCode: true, loading: false });
+          if (user.challengeName === 'SOFTWARE_TOKEN_MFA' || user.challengeName === 'SMS_MFA') {
+            this.setState({ loading: false, requireToken: true, challengeName: user.challengeName });
+          } else if (user.challengeName === 'CUSTOM_CHALLENGE') {
+            console.log(`custom challenge: ${user}`);
+          } else {
+            this.setState({ redirect: true });
+          }
+          this.setState({ loading: false });
+        } catch (e) {
+          this.setState({ loading: false });
         }
       }
     });
@@ -92,12 +100,11 @@ class LoginContainer extends React.Component<Props, State> {
 
   render() {
     const { getFieldDecorator } = this.props.form;
-    const { loading, cognitoUser, redirect } = this.state;
+    const { loading, redirect } = this.state;
 
     return (
       <React.Fragment>
-
-        {!this.state.showQRCode && (
+        {!this.state.requireToken && (
           <FormWrapper onSubmit={this.handleSubmit} className="login-form">
             <Form.Item>
               {getFieldDecorator('username', {
@@ -108,7 +115,7 @@ class LoginContainer extends React.Component<Props, State> {
                   }
                 ]
               })(
-                <Input prefix={<Icon type="user" style={{ color: "#000000" }} />} placeholder="Username" />
+                <Input prefix={<Icon type="user" style={{ color: '#000000' }}/>} placeholder="Username"/>
               )}
             </Form.Item>
             <Form.Item>
@@ -121,7 +128,7 @@ class LoginContainer extends React.Component<Props, State> {
                 ]
               })(
                 <Input
-                  prefix={<Icon type="lock" style={{ color: '#000000' }} />}
+                  prefix={<Icon type="lock" style={{ color: '#000000' }}/>}
                   type="password"
                   placeholder="Password"
                 />
@@ -137,20 +144,18 @@ class LoginContainer extends React.Component<Props, State> {
                     htmlType="submit"
                     className="login-form-button"
                   >
-                    {loading ? <Spin indicator={<Icon type="loading" style={{ fontSize: 24 }} spin />} /> : 'Log in'}
+                    {loading ? <Spin indicator={<Icon type="loading" style={{ fontSize: 24 }} spin/>}/> : 'Log in'}
                   </Button>
                 </Col>
                 <Col lg={24}>
-                  Or <Link to="/signup">register now!</Link>
+                  <Link to="/signup">Register now</Link> | <Link to="/forgotPassword">Forgot password?</Link>
                 </Col>
               </Row>
             </Form.Item>
           </FormWrapper>
         )}
-        {this.state.showQRCode && (
+        {this.state.requireToken && (
           <FormWrapper onSubmit={(event) => this.handleSubmitMFA(event)} className="login-form">
-            {/* <img src={this.state.QRCode} /> */}
-            <QRCode value={this.state.QRCode} />
             <Form.Item>
               {getFieldDecorator('token', {
                 rules: [
@@ -160,7 +165,7 @@ class LoginContainer extends React.Component<Props, State> {
                   }
                 ]
               })(
-                <Input prefix={<Icon type="user" style={{ color: "#000000" }} />} placeholder="Token" />
+                <Input prefix={<Icon type="user" style={{ color: '#000000' }}/>} placeholder="Token"/>
               )}
             </Form.Item>
             <Form.Item className="text-center">
@@ -173,13 +178,13 @@ class LoginContainer extends React.Component<Props, State> {
                     htmlType="submit"
                     className="login-form-button"
                   >
-                    {loading ? <Spin indicator={<Icon type="loading" style={{ fontSize: 24 }} spin />} /> : 'Log in'}
+                    {loading ? <Spin indicator={<Icon type="loading" style={{ fontSize: 24 }} spin/>}/> : 'Log in'}
                   </Button>
                 </Col>
               </Row>
             </Form.Item>
           </FormWrapper>)}
-        {redirect && <Redirect to={{ pathname: '/dashboard' }} />}
+        {redirect && <Redirect to={{ pathname: '/dashboard' }}/>}
       </React.Fragment>
     );
   }

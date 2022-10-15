@@ -51,7 +51,7 @@ class SignUpContainer extends React.Component<Props, State> {
     email: ''
   };
 
- 
+
   handleOpenNotification = (type: string, title: string, message: string): void => {
     switch (type) {
       case 'success':
@@ -93,7 +93,7 @@ class SignUpContainer extends React.Component<Props, State> {
           attributes: {
             email,
             name: `${fname} ${lname}`,
-            phone_number: "+"+phoneNumber
+            phone_number: phoneNumber
           }
         })
           .then(() => {
@@ -201,7 +201,7 @@ class SignUpContainer extends React.Component<Props, State> {
               ]
             })(
               <Input
-                prefix={<Icon type="user" style={{ color: '000000' }} />}
+                prefix={<Icon type="user" style={{ color: '000000' }}/>}
                 placeholder="First Name"
               />
             )}
@@ -215,13 +215,13 @@ class SignUpContainer extends React.Component<Props, State> {
                 }
               ]
             })(
-              <Input prefix={<Icon type="user" style={{ color: '000000' }} />} placeholder="Last Name" />
+              <Input prefix={<Icon type="user" style={{ color: '000000' }}/>} placeholder="Last Name"/>
             )}
           </Form.Item>
           <Form.Item>
             {getFieldDecorator('email', {
               rules: [{ required: true, message: 'Please input your email!' }]
-            })(<Input prefix={<Icon type="user" style={{ color: '000000' }} />} placeholder="Email" />)}
+            })(<Input prefix={<Icon type="user" style={{ color: '000000' }}/>} placeholder="Email"/>)}
           </Form.Item>
           <Form.Item>
             {getFieldDecorator('phoneNumber', {
@@ -233,7 +233,7 @@ class SignUpContainer extends React.Component<Props, State> {
               ]
             })(
               <Input
-                prefix={<Icon type="phone" style={{ color: '000000' }} />}
+                prefix={<Icon type="phone" style={{ color: '000000' }}/>}
                 placeholder="Phone Number"
               />
             )}
@@ -249,7 +249,7 @@ class SignUpContainer extends React.Component<Props, State> {
                 ]
               })(
                 <Input
-                  prefix={<Icon type="lock" style={{ color: '000000' }} />}
+                  prefix={<Icon type="lock" style={{ color: '000000' }}/>}
                   type="password"
                   placeholder="Password"
                 />
@@ -269,7 +269,7 @@ class SignUpContainer extends React.Component<Props, State> {
               ]
             })(
               <Input
-                prefix={<Icon type="lock" style={{ color: '000000' }} />}
+                prefix={<Icon type="lock" style={{ color: '000000' }}/>}
                 type="password"
                 placeholder="Confirm Password"
                 onBlur={this.handleConfirmBlur}
@@ -281,7 +281,7 @@ class SignUpContainer extends React.Component<Props, State> {
             <Row>
               <Col lg={24}>
                 <Button style={{ width: '100%' }} type="primary" disabled={loading} htmlType="submit">
-                  {loading ? <Spin indicator={<Icon type="loading" style={{ fontSize: 24 }} spin />} /> : 'Register'}
+                  {loading ? <Spin indicator={<Icon type="loading" style={{ fontSize: 24 }} spin/>}/> : 'Register'}
                 </Button>
               </Col>
               <Col lg={24}>
